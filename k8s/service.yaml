@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextjs-app
+  namespace: aks-deploy-example
+spec:
+  type: LoadBalancer
+  selector:
+    app: nextjs-app
+  ports:
+    - port: 80
+      targetPort: 3000

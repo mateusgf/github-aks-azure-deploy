@@ -1,0 +1,63 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "infra/**"
+      - "**.md"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: rg-aks-deploy-example-dev
+  AKS_CLUSTER: aks-aks-deploy-example-dev
+  IMAGE_NAME: nextjs-app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve ACR name
+        id: acr
+        run: |
+          NAME=$(az acr list --resource-group "$RESOURCE_GROUP" --query "[0].name" -o tsv)
+          LOGIN_SERVER=$(az acr list --resource-group "$RESOURCE_GROUP" --query "[0].loginServer" -o tsv)
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "login_server=$LOGIN_SERVER" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        run: |
+          az acr build \
+            --registry "${{ steps.acr.outputs.name }}" \
+            --image "$IMAGE_NAME:${{ github.sha }}" \
+            --image "$IMAGE_NAME:latest" \
+            .
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$AKS_CLUSTER" \
+            --overwrite-existing
+
+      - name: Deploy to AKS
+        run: |
+          cd k8s
+          kubectl apply -k .
+          kubectl set image deployment/nextjs-app \
+            nextjs-app="${{ steps.acr.outputs.login_server }}/$IMAGE_NAME:${{ github.sha }}" \
+            -n aks-deploy-example
+          kubectl rollout status deployment/nextjs-app -n aks-deploy-example --timeout=180s

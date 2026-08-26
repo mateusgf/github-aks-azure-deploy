@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.github
+infra
+k8s
+*.md
+.env*
+npm-debug.log*
