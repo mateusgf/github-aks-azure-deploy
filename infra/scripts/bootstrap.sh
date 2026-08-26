@@ -53,6 +53,13 @@ az role assignment create \
   --role "Contributor" \
   --scope "/subscriptions/$SUBSCRIPTION_ID" >/dev/null
 
+echo "==> Granting Role Based Access Control Administrator (needed for Terraform to create the AcrPull role assignment)"
+az role assignment create \
+  --assignee-object-id "$SP_OBJECT_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --role "Role Based Access Control Administrator" \
+  --scope "/subscriptions/$SUBSCRIPTION_ID" >/dev/null
+
 echo "==> Adding Storage Blob Data Contributor on the state storage account"
 az role assignment create \
   --assignee-object-id "$SP_OBJECT_ID" \
