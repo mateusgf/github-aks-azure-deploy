@@ -7,3 +7,11 @@ resource "azurerm_container_registry" "main" {
   admin_enabled       = false
   tags                = local.common_tags
 }
+
+# Contributor (granted to the GitHub Actions SP) only covers control-plane
+# actions; pushing images needs this data-plane role explicitly.
+resource "azurerm_role_assignment" "ci_acr_push" {
+  scope                = azurerm_container_registry.main.id
+  role_definition_name = "AcrPush"
+  principal_id         = var.ci_principal_object_id
+}

@@ -44,3 +44,9 @@ variable "vm_size" {
   type        = string
   default     = "Standard_B2s_v2"
 }
+
+variable "ci_principal_object_id" {
+  description = "Object ID of the service principal used by GitHub Actions, granted AcrPush on the registry so it can push images."
+  type        = string
+  default     = "6c363f8a-8a7b-4cc3-bd22-d278d715de11"
+}
