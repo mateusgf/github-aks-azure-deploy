@@ -61,6 +61,15 @@ az role assignment create \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$STATE_RG/providers/Microsoft.Storage/storageAccounts/$STATE_SA" >/dev/null
 
 echo "==> Creating federated credentials for GitHub OIDC ($GITHUB_REPO)"
+# GitHub embeds stable owner/repo IDs in the subject claim (e.g. after a rename
+# or transfer): repo:owner@ownerId/repo@repoId:ref:... Create both the plain
+# and ID-qualified subjects so auth works either way.
+OWNER="${GITHUB_REPO%%/*}"
+REPO="${GITHUB_REPO##*/}"
+OWNER_ID=$(curl -fsSL "https://api.github.com/users/$OWNER" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+REPO_ID=$(curl -fsSL "https://api.github.com/repos/$GITHUB_REPO" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+QUALIFIED_REPO="${OWNER}@${OWNER_ID}/${REPO}@${REPO_ID}"
+
 az ad app federated-credential create --id "$APP_ID" --parameters '{
   "name": "github-main-branch",
   "issuer": "https://token.actions.githubusercontent.com",
@@ -69,9 +78,23 @@ az ad app federated-credential create --id "$APP_ID" --parameters '{
 }' >/dev/null
 
 az ad app federated-credential create --id "$APP_ID" --parameters '{
+  "name": "github-main-branch-qualified",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:'"$QUALIFIED_REPO"':ref:refs/heads/main",
+  "audiences": ["api://AzureADTokenExchange"]
+}' >/dev/null
+
+az ad app federated-credential create --id "$APP_ID" --parameters '{
   "name": "github-pull-requests",
   "issuer": "https://token.actions.githubusercontent.com",
   "subject": "repo:'"$GITHUB_REPO"':pull_request",
+  "audiences": ["api://AzureADTokenExchange"]
+}' >/dev/null
+
+az ad app federated-credential create --id "$APP_ID" --parameters '{
+  "name": "github-pull-requests-qualified",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:'"$QUALIFIED_REPO"':pull_request",
   "audiences": ["api://AzureADTokenExchange"]
 }' >/dev/null
 
