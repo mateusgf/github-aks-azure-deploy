@@ -61,3 +61,17 @@ jobs:
             nextjs-app="${{ steps.acr.outputs.login_server }}/$IMAGE_NAME:${{ github.sha }}" \
             -n aks-deploy-example
           kubectl rollout status deployment/nextjs-app -n aks-deploy-example --timeout=180s
+
+      - name: Print live URL
+        run: |
+          echo "Waiting for LoadBalancer public IP..."
+          for i in $(seq 1 30); do
+            IP=$(kubectl get svc nextjs-app -n aks-deploy-example -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            [ -n "$IP" ] && break
+            sleep 10
+          done
+          if [ -n "$IP" ]; then
+            echo "App is live at: http://$IP" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "LoadBalancer IP not yet assigned, check with: kubectl get svc -n aks-deploy-example" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
