@@ -55,4 +55,5 @@ This repo also ships with everything needed to deploy to Azure Kubernetes Servic
 2. Add the values printed by the script as **repository variables** (Settings → Secrets and variables → Actions → Variables): `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `TF_STATE_RG`, `TF_STATE_SA`, `TF_STATE_CONTAINER`.
 3. Push to `main` — the Terraform workflow provisions the infra, then the deploy workflow builds/pushes the image and applies the k8s manifests.
 
-Subscription: `c0ae4ebe-9b84-4a13-8f45-c7cb699a3630`, region `swedencentral` (change in [infra/variables.tf](infra/variables.tf)).
+Azure Subscription ID and region in [infra/variables.tf](infra/variables.tf) and 
+[infra/scripts/bootstrap.sh](infra/scripts/bootstrap.sh)
